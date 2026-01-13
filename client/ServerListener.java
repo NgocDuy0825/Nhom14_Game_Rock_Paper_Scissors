@@ -3,6 +3,7 @@ package client;
 import common.Message;
 
 import java.io.*;
+import java.net.SocketException;
 
 public class ServerListener extends Thread {
 
@@ -23,8 +24,18 @@ public class ServerListener extends Thread {
                     System.out.println("SERVER: " + msg.getType() + " - " + msg.getContent());
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        }
+        catch (EOFException e) {
+            System.out.println("CLIENT: Server closed connection");
+        }
+        catch (SocketException e) {
+            System.out.println("CLIENT: Connection lost");
+        }
+        catch (ClassNotFoundException e) {
+            System.out.println("CLIENT ERROR: Unknown object received");
+        }
+        catch (IOException e) {
+            System.out.println("CLIENT IO ERROR: " + e.getMessage());
         }
     }
 }
