@@ -18,11 +18,16 @@ public class ServerListener extends Thread {
         try {
             while (true) {
                 Object obj = in.readObject();
-                
-                if (obj instanceof Message) {
-                    Message msg = (Message) obj;
-                    System.out.println("SERVER: " + msg.getType() + " - " + msg.getContent());
+
+                if (!(obj instanceof Message)) {
+                    System.out.println("CLIENT ERROR: Invalid message type");
+                    continue;
                 }
+
+                Message msg = (Message) obj;
+                System.out.println(
+                    "SERVER: " + msg.getType() + " - " + msg.getContent()
+                );
             }
         }
         catch (EOFException e) {
@@ -36,6 +41,13 @@ public class ServerListener extends Thread {
         }
         catch (IOException e) {
             System.out.println("CLIENT IO ERROR: " + e.getMessage());
+        }
+        finally {
+            try {
+                in.close();
+            } catch (IOException ignored) {}
+
+            System.out.println("CLIENT: Listener stopped");
         }
     }
 }
