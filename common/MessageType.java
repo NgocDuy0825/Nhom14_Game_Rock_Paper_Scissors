@@ -1,6 +1,15 @@
+package common;
+
 public enum MessageType {
-    JOIN,
+    WELCOME,
+    NAME, 
+    READY, 
+    WAIT, 
+    START, 
     MOVE,
-    ATTACK,
-    LEAVE
+    RESULT, 
+    STATUS, 
+    PLAY_AGAIN, 
+    DISCONNECT, 
+    ERROR 
 }
