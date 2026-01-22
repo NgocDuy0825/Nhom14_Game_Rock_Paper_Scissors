@@ -1,92 +1,235 @@
 package common;
- 
+
 import java.util.HashMap;
 import java.util.Map;
 
+
 public class Message {
-    public MessageType type;
+
+    
+    public enum Type {
+        NAME, 
+        READY, 
+        START, 
+        MOVE, 
+        RESULT, 
+        STATUS, 
+        WELCOME, 
+        ERROR, 
+        DISCONNECT
+    }
+
+    public Type type;
     public Map<String, String> fields = new HashMap<>();
 
-    public Message(MessageType type) {
+
+    public Message(Type type) {
         this.type = type;
     }
 
+    @Deprecated
+    public Message(MessageType oldType) {
+        this.type = convertFromOldType(oldType);
+    }
+
     public String toWireString() {
-        // TYPE|k1=v1;k2=v2
         StringBuilder sb = new StringBuilder();
         sb.append(type.name());
-        sb.append("|");
-        boolean first = true;
-        for (Map.Entry<String, String> e : fields.entrySet()) {
-            if (!first)
-                sb.append(";");
-            sb.append(escape(e.getKey()));
-            sb.append("=");
-            sb.append(escape(e.getValue()));
-            first = false;
+
+        if (!fields.isEmpty()) {
+            sb.append("|");
+            boolean first = true;
+            for (Map.Entry<String, String> e : fields.entrySet()) {
+                if (!first)
+                    sb.append(";");
+                sb.append(escape(e.getKey()));
+                sb.append("=");
+                sb.append(escape(e.getValue()));
+                first = false;
+            }
         }
+
         return sb.toString();
     }
 
-    public static Message parse(String line) {
     
-        if (line == null || line.trim().isEmpty())
+    public static Message parse(String line) {
+        if (line == null || line.trim().isEmpty()) {
             return null;
+        }
+
         String[] parts = line.split("\\|", 2);
-        MessageType type;
+
+        Type type;
         try {
-            type = MessageType.valueOf(parts[0]);
-        } catch (Exception ex) {
-             
-            Message m = new Message(MessageType.ERROR);
-            m.fields.put("message", "Unknown message type: " + parts[0]);
-            return m;
+            type = Type.valueOf(parts[0].trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            Message errorMsg = new Message(Type.ERROR);
+            errorMsg.fields.put("message", "Unknown message type: " + parts[0]);
+            return errorMsg;
         }
-        Message m = new Message(type);
-        if (parts.length == 1)
-            return m;
-        String payload = parts[1];
-        String[] pairs = payload.split(";");
-        for (String p : pairs) {
-            if (p.isEmpty())
-                continue;
-            int eq = p.indexOf('=');
-            if (eq <= 0)
-                continue;
-            String k = unescape(p.substring(0, eq));
-            String v = unescape(p.substring(eq + 1));
-            m.fields.put(k, v);
+
+        Message msg = new Message(type);
+
+        if (parts.length > 1 && !parts[1].isEmpty()) {
+            String payload = parts[1];
+            String[] pairs = payload.split(";");
+
+            for (String pair : pairs) {
+                if (pair.isEmpty())
+                    continue;
+
+                int eqIndex = pair.indexOf('=');
+                if (eqIndex <= 0)
+                    continue;
+
+                String key = unescape(pair.substring(0, eqIndex));
+                String value = unescape(pair.substring(eqIndex + 1));
+                msg.fields.put(key, value);
+            }
         }
-        return m;
+
+        return msg;
     }
 
+
+   
+    public Type getType() {
+        return this.type;
+    }
+
+    
+    public String getContent() {
+        if (fields == null || fields.isEmpty()) {
+            return null;
+        }
+
+        
+        if (fields.containsKey("content")) {
+            return fields.get("content");
+        }
+        if (fields.containsKey("message")) {
+            return fields.get("message");
+        }
+        if (fields.containsKey("text")) {
+            return fields.get("text");
+        }
+
+        return null;
+    }
+
+    
+    public String getField(String key) {
+        return fields.get(key);
+    }
+
+  
+    public String getField(String key, String defaultValue) {
+        return fields.getOrDefault(key, defaultValue);
+    }
+
+    public void setField(String key, String value) {
+        fields.put(key, value);
+    }
+
+    
+    public boolean hasField(String key) {
+        return fields.containsKey(key);
+    }
+
+    
     private static String escape(String s) {
         if (s == null)
             return "";
-        return s.replace("\\", "\\\\").replace(";", "\\s").replace("=", "\\e").replace("|", "\\p");
+
+        return s.replace("\\", "\\\\") // Must be first!
+                .replace("\n", "\\n") // Newline
+                .replace("\r", "\\r") // Carriage return
+                .replace("\t", "\\t") // Tab
+                .replace(";", "\\s") // Semicolon
+                .replace("=", "\\e") // Equals
+                .replace("|", "\\p"); // Pipe
     }
 
+    
     private static String unescape(String s) {
         if (s == null)
             return "";
-        return s.replace("\\p", "|").replace("\\e", "=").replace("\\s", ";").replace("\\\\", "\\");
+
+        return s.replace("\\p", "|") // Pipe
+                .replace("\\e", "=") // Equals
+                .replace("\\s", ";") // Semicolon
+                .replace("\\t", "\t") // Tab
+                .replace("\\r", "\r") // Carriage return
+                .replace("\\n", "\n") // Newline
+                .replace("\\\\", "\\"); // Must be last!
     }
 
-     
-    public MessageType getType() {
-        return this.type;  
-
-    public String getContent() {
-         
-        if (this.fields != null) {
-            if (this.fields.containsKey("content"))
-                return this.fields.get("content");
-            if (this.fields.containsKey("message"))
-                return this.fields.get("message");
-             
+    
+    @Deprecated
+    private static Type convertFromOldType(MessageType oldType) {
+        switch (oldType) {
+            case NAME:
+                return Type.NAME;
+            case READY:
+                return Type.READY;
+            case START:
+                return Type.START;
+            case MOVE:
+                return Type.MOVE;
+            case RESULT:
+                return Type.RESULT;
+            case STATUS:
+                return Type.STATUS;
+            case WELCOME:
+                return Type.WELCOME;
+            case ERROR:
+                return Type.ERROR;
+            case DISCONNECT:
+                return Type.DISCONNECT;
+            default:
+                return Type.ERROR;
         }
-         
-        return null;
-
     }
+
+    
+    @Deprecated
+    public MessageType toOldType() {
+        switch (this.type) {
+            case NAME:
+                return MessageType.NAME;
+            case READY:
+                return MessageType.READY;
+            case START:
+                return MessageType.START;
+            case MOVE:
+                return MessageType.MOVE;
+            case RESULT:
+                return MessageType.RESULT;
+            case STATUS:
+                return MessageType.STATUS;
+            case WELCOME:
+                return MessageType.WELCOME;
+            case ERROR:
+                return MessageType.ERROR;
+            case DISCONNECT:
+                return MessageType.DISCONNECT;
+            default:
+                return MessageType.ERROR;
+        }
+    }
+
+   
+
+    @Override
+    public String toString() {
+        return "Message{type=" + type + ", fields=" + fields + "}";
+    }
+}
+ 
+  @deprecated Use Message.Type instead
+ 
+@Deprecated
+enum MessageType {
+    NAME, READY, START, MOVE, RESULT, STATUS, WELCOME, ERROR, DISCONNECT
 }
