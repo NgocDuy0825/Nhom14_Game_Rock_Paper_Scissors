@@ -6,17 +6,17 @@ import java.util.Map;
 
 public class Message {
 
-    
+   
     public enum Type {
-        NAME, 
-        READY, 
-        START, 
-        MOVE, 
-        RESULT, 
-        STATUS, 
-        WELCOME, 
-        ERROR, 
-        DISCONNECT
+        NAME, // Set player name
+        READY, // Join matchmaking queue
+        START, // Start game in room
+        MOVE, // Submit move choice
+        RESULT, // Round/game result
+        STATUS, // Status message
+        WELCOME, // Welcome message with client ID
+        ERROR, // Error message
+        DISCONNECT // Disconnect notification
     }
 
     public Type type;
@@ -32,6 +32,7 @@ public class Message {
         this.type = convertFromOldType(oldType);
     }
 
+   
     public String toWireString() {
         StringBuilder sb = new StringBuilder();
         sb.append(type.name());
@@ -54,16 +55,20 @@ public class Message {
 
     
     public static Message parse(String line) {
+        // Handle null/empty
         if (line == null || line.trim().isEmpty()) {
             return null;
         }
 
+        // Split into type and payload
         String[] parts = line.split("\\|", 2);
 
+        // Parse message type
         Type type;
         try {
             type = Type.valueOf(parts[0].trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
+            // Unknown type -> return ERROR message
             Message errorMsg = new Message(Type.ERROR);
             errorMsg.fields.put("message", "Unknown message type: " + parts[0]);
             return errorMsg;
@@ -71,6 +76,7 @@ public class Message {
 
         Message msg = new Message(type);
 
+        // Parse fields if present
         if (parts.length > 1 && !parts[1].isEmpty()) {
             String payload = parts[1];
             String[] pairs = payload.split(";");
@@ -93,18 +99,18 @@ public class Message {
     }
 
 
-   
+    
     public Type getType() {
         return this.type;
     }
 
-    
+   
     public String getContent() {
         if (fields == null || fields.isEmpty()) {
             return null;
         }
 
-        
+        // Try common field names
         if (fields.containsKey("content")) {
             return fields.get("content");
         }
@@ -123,11 +129,12 @@ public class Message {
         return fields.get(key);
     }
 
-  
+
     public String getField(String key, String defaultValue) {
         return fields.getOrDefault(key, defaultValue);
     }
 
+   
     public void setField(String key, String value) {
         fields.put(key, value);
     }
@@ -151,7 +158,6 @@ public class Message {
                 .replace("|", "\\p"); // Pipe
     }
 
-    
     private static String unescape(String s) {
         if (s == null)
             return "";
@@ -219,16 +225,18 @@ public class Message {
         }
     }
 
-   
 
     @Override
     public String toString() {
         return "Message{type=" + type + ", fields=" + fields + "}";
     }
 }
- 
-  @deprecated Use Message.Type instead
- 
+
+/**
+ * Old MessageType enum for backwards compatibility
+ * 
+ * @deprecated Use Message.Type instead
+ */
 @Deprecated
 enum MessageType {
     NAME, READY, START, MOVE, RESULT, STATUS, WELCOME, ERROR, DISCONNECT
