@@ -2,14 +2,14 @@ package common;
 
 public enum MessageType {
     WELCOME,
-    NAME, 
+    NAME,  
     READY, 
     WAIT, 
     START, 
-    MOVE,
+    MOVE, 
     RESULT, 
     STATUS, 
-    PLAY_AGAIN, 
+    PLAY_AGAIN,
     DISCONNECT, 
-    ERROR 
+    ERROR
 }
