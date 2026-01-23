@@ -1,10 +1,11 @@
 package common;
 
+
 public enum PlayerState {
-    CONNECTED,
-    READY,
-    WAITING,
-    PLAYING,
-    FINISHED,
+    CONNECTED, 
+    MATCHING, 
+    IN_ROOM,
+    PLAYING, 
+    FINISHED, 
     DISCONNECTED
 }
